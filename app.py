@@ -274,13 +274,19 @@ def get_marine_safety():
         return jsonify({"error": "No location specified."}), 400
 
     try:
+        headers = {"User-Agent": "SagarSaathi/1.0"}
          marine_url = f"https://marine-api.open-meteo.com/v1/marine?latitude={lat}&longitude={lon}&current=wave_height&cell_selection=sea"
-        marine_res = requests.get(marine_url, timeout=5)
+        marine_res = requests.get(marine_url, timeout=10)
         marine_res.raise_for_status()
         wave_height = marine_res.json().get("current", {}).get("wave_height")
+        if wave_height is None:
+            fallback_url = f"https://marine-api.open-meteo.com/v1/marine?latitude={lat}&longitude={lon}&current=wave_height"
+            fallback_res = requests.get(fallback_url, headers=headers, timeout=10)
+            if fallback_res.status_code == 200:
+                wave_height = fallback_res.json().get("current", {}).get("wave_height")
 
         weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=wind_speed_10m,wind_direction_10m"
-        weather_res = requests.get(weather_url, timeout=5)
+        weather_res = requests.get(weather_url, timeout=10)
         weather_res.raise_for_status()
         weather_data = weather_res.json().get("current", {})
         wind_speed = weather_data.get("wind_speed_10m")
