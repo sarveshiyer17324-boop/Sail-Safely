@@ -235,10 +235,10 @@ function fetchMarineSafety(url) {
 </body>
 </html>
 """
-
+from flask import render_template
 @app.route("/")
 def home():
-    return render_template_string(HTML_TEMPLATE)
+    return render_template("index.html")
 
 @app.route("/get_marine_safety")
 def get_marine_safety():
