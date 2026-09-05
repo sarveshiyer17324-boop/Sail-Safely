@@ -242,7 +242,7 @@ def home():
 
 @app.route("/get_marine_safety")
 def get_marine_safety():
-   #  metrics.count("marine_safety.request.count", 1)
+    metrics.count("marine_safety.request.count", 1)
     city = request.args.get("city")
     lat_param = request.args.get("lat")
     lon_param = request.args.get("lon")
