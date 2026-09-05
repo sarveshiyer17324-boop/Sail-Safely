@@ -274,7 +274,7 @@ def get_marine_safety():
         return jsonify({"error": "No location specified."}), 400
 
     try:
-        marine_url = f"https://marine-api.open-meteo.com/v1/marine?latitude={lat}&longitude={lon}&current=wave_height&cell_selection=sea"
+        marine_url = f"https://marine-api.open-meteo.com/v1/marine?latitude={lat}&longitude={lon}&current=wave_height&cell_selection=nearest"
         marine_res = requests.get(marine_url, timeout=5)
         marine_res.raise_for_status()
         wave_height = marine_res.json().get("current", {}).get("wave_height")
