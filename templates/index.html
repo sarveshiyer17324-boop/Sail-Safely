@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sagar Saathi | सागर साथी - Marine Safety</title>
+<style>
+body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f0f4f8; }
+.app-container { background: white; padding: 25px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 400px; }
+.lang-select { margin-bottom: 15px; padding: 8px; font-size: 14px; border-radius: 6px; border: 1px solid #0076d6; background: #eef7ff; font-weight: bold; width: 100%; }
+.geo-btn { background: #28a745; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-size: 15px; width: 100%; margin-top: 15px; font-weight: bold; }
+.geo-btn:hover { background: #218838; }
+.sos-btn { background: #dc3545; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; font-weight: bold; }
+.sos-btn:hover { background: #c82333; }
+input { padding: 10px; width: 55%; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; margin-right: 5px; }
+.submit-btn { padding: 10px 15px; background: #0076d6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+.submit-btn:hover { background: #0056b3; }
+.status-box { margin-top: 20px; padding: 15px; border-radius: 6px; font-weight: bold; font-size: 18px; white-space: pre-line; }
+.safe { background-color: #d4edda; color: #155724; }
+.caution { background-color: #fff3cd; color: #856404; }
+.danger { background-color: #f8d7da; color: #721c24; }
+.data-display { text-align: left; margin-top: 15px; font-size: 15px; line-height: 1.6; }
+.sub-title { color: #555; font-size: 14px; margin-top: -10px; margin-bottom: 15px; }
+</style>
+</head>
+<body>
+<div class="app-container">
+<h1 style="margin-bottom: 5px;">Sagar Saathi</h1>
+<div class="sub-title">सागर साथी Marine & Wind Safety App</div>
+<select id="lang-picker" class="lang-select">
+<option value="en">English</option>
+<option value="hi">हिंदी (Hindi)</option>
+<option value="mr">मराठी (Marathi)</option>
+<option value="ta">தமிழ் (Tamil)</option>
+<option value="ml">മലയാളം (Malayalam)</option>
+<option value="gu">ગુજરાતી (Gujarati)</option>
+</select>
+<form id="search-form">
+<input type="text" id="city-input" placeholder="e.g., Mumbai, Kochi">
+<button type="submit" class="submit-btn">Check</button>
+</form>
+<button id="gps-btn" class="geo-btn" type="button">Use My Location</button>
+<button id="sos-btn" class="sos-btn" type="button">🚨 EMERGENCY SOS</button>
+
+<div id="safety-status" class="status-box" style="display: none;"></div>
+<div id="marine-data" class="data-display"></div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const gpsBtn = document.getElementById('gps-btn');
+    const sosBtn = document.getElementById('sos-btn');
+    const searchForm = document.getElementById('search-form');
+
+    sosBtn.addEventListener('click', () => {
+        alert("EMERGENCY: Fisher Helpline Number: 040-23895000");
+        window.location.href = "tel:04023895000";
+    });
+
+    gpsBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) return alert("GPS is not supported by your browser.");
+        document.getElementById('marine-data').innerHTML = "Detecting location...";
+        const lang = document.getElementById('lang-picker').value;
+        navigator.geolocation.getCurrentPosition(
+            (pos) => fetchMarineSafety(`/get_marine_safety?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&lang=${lang}`),
+            (err) => alert("GPS Error: Please enable location permissions in your browser.")
+        );
+    });
+
+    searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const city = document.getElementById('city-input').value.trim();
+        const lang = document.getElementById('lang-picker').value;
+        if (city) fetchMarineSafety(`/get_marine_safety?city=${encodeURIComponent(city)}&lang=${lang}`);
+    });
+});
+
+function speakResult(text, langCode) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        const langMap = {
+            'en': 'en-IN',
+            'hi': 'hi-IN',
+            'mr': 'mr-IN',
+            'ta': 'ta-IN',
+            'ml': 'ml-IN',
+            'gu': 'gu-IN'
+        };
+        utterance.lang = langMap[langCode] || 'en-IN';
+        window.speechSynthesis.speak(utterance);
+    }
+}
+
+function fetchMarineSafety(url) {
+    const dataDisplay = document.getElementById('marine-data');
+    const safetyStatus = document.getElementById('safety-status');
+    const currentLang = document.getElementById('lang-picker').value;
+    dataDisplay.innerHTML = "Fetching weather & wave telemetry...";
+    safetyStatus.style.display = "none";
+    
+    fetch(url)
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            dataDisplay.innerHTML = "❌ " + data.error;
+            speakResult(data.error, currentLang);
+            return;
+        }
+        safetyStatus.style.display = "block";
+        safetyStatus.className = "status-box " + data.status_level;
+        if (data.reasons.length > 0) {
+            safetyStatus.innerText = data.status_title + "\\n(" + data.reasons.join(" & ") + ")";
+        } else {
+            safetyStatus.innerText = data.status_title;
+        }
+        dataDisplay.innerHTML = `
+        <h3>Conditions for ${data.name}:</h3>
+        <ul>
+        <li><strong>Coordinates:</strong> ${data.lat}°, ${data.lon}°</li>
+        <li><strong>Wave Height:</strong> ${data.wave_height} meters</li>
+        <li><strong>Wind Speed:</strong> ${data.wind_speed} km/h (${data.wind_direction}°)</li>
+        </ul>`;
+        speakResult(data.speech_text, currentLang);
+    })
+    .catch(() => {
+        dataDisplay.innerHTML = "❌ Server connection dropped.";
+    });
+}
+</script>
+</body>
+</html>
